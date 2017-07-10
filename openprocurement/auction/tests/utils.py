@@ -1,20 +1,23 @@
+import datetime
 import json
 import contextlib
-
-
-class TestClient(object):
-    """TODO: """
-
-with open('data/public_document.json') as _file:
-    test_public_document = json.load(_file)
+import tempfile
+from dateutil.tz import tzlocal
 
 
 @contextlib.contextmanager
-def put_test_doc(db, doc):
-    id, rev = db.save(doc)
-    yield id
-    del db[id]
-    
+def update_auctionPeriod(path, auction_type):
+    with open(path) as file:
+        data = json.loads(file.read())
+    new_start_time = (datetime.datetime.now(tzlocal()) + datetime.timedelta(seconds=120)).isoformat()
+    if auction_type == 'simple':
+        data['data']['auctionPeriod']['startDate'] = new_start_time
+    elif auction_type == 'multilot':
+        for lot in data['data']['lots']:
+            lot['auctionPeriod']['startDate'] = new_start_time
 
-def update_start_auction_period(raw_data):
-    """TODO: """
+    with tempfile.NamedTemporaryFile(delete=False) as auction_file:
+        json.dump(data, auction_file)
+        auction_file.seek(0)
+    yield auction_file.name
+    auction_file.close()
