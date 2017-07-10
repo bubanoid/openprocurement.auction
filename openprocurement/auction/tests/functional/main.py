@@ -67,7 +67,7 @@ def main():
     parser = argparse.ArgumentParser("Auction test runner")
     parser.add_argument('suite', choices=ACTIONS.keys(), default='simple', help='test_suite')
     args = parser.parse_args()
-    tender_file_path = os.path.join(PWD, "data/tender_{}.json".format(args.suite))
+    tender_file_path = os.path.join(PWD, "../data/tender_{}.json".format(args.suite))
     for action in ACTIONS.get(args.suite):
         action(tender_file_path, auction_id="11111111111111111111111111111111")
         sleep(4)
