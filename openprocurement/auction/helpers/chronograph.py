@@ -168,9 +168,9 @@ class AuctionScheduler(GeventScheduler):
         self.logger.info('Scedule start of {} at {} ({})'.format(document_id,
                                                                  AW_date,
                                                                  view_value['start']))
-
         self.add_job(self.run_auction_func, kwargs=dict(args=args),
                      misfire_grace_time=60,
                      next_run_time=AW_date,
                      id=document_id,
                      replace_existing=True)
+
