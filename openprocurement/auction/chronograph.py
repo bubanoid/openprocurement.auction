@@ -20,13 +20,13 @@ from gevent.pywsgi import WSGIServer
 from datetime import datetime, timedelta
 
 from openprocurement.auction.utils import FeedItem
-from openprocurement.auction.core import components
 from openprocurement.auction.interfaces import IAuctionsChronograph, IAuctionsManager
 from openprocurement.auction.design import sync_design_chronograph
-from openprocurement.auction.helpers.chronograph import get_server_name, AuctionScheduler
 from openprocurement.auction.helpers.chronograph_http import chronograph_webapp
 from openprocurement.auction.helpers.couch import iterview, couchdb_dns_query_settings
 from openprocurement.auction.helpers.system import get_lisener
+from openprocurement.auction.helpers.chronograph import get_server_name, AuctionScheduler
+from openprocurement.auction.core import components
 
 
 LOGGER = logging.getLogger('Auction Chronograph')
@@ -67,16 +67,25 @@ class AuctionsChronograph(object):
         self.server.start()
 
     def run(self):
-
         LOGGER.info('Starting node: {}'.format(self.server_name))
+        print('..........')
 
         for auction_item in iterview(self.config['main']["couch_url"], self.config['main']['auctions_db'], 'chronograph/start_date'):
             datestamp = (datetime.now(self.timezone) + timedelta(minutes=1)).isoformat()
             # ADD FILTER BY VALUE {start: '2016-09-10T14:36:40.378777+03:00', test: false}
+
             if datestamp < auction_item['value']['start']:
                 worker_cmd_provider = self.mapper(FeedItem(auction_item['value']))
                 if not worker_cmd_provider:
                     continue
+                print('!!!!!!!!!!!!!')
+                print(auction_item['value'])
+
+                # x = worker_cmd_provider(auction_item['id'])
+                # print(type(x))
+                # print(str(x))
+                # import pdb;pdb.set_trace()
+
                 self.scheduler.schedule_auction(auction_item['id'],
                                                 auction_item['value'],
                                                 args=worker_cmd_provider(auction_item['id']))
