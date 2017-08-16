@@ -157,6 +157,7 @@ class AuctionScheduler(GeventScheduler):
             self.logger.warning("Changed start date: {}".format(document_id))
 
         now = datetime.now(self.timezone)
+        # import pdb; pdb.set_trace()
         if auction_start_date - now > MAX_AUCTION_START_TIME_RESERV:
             AW_date = auction_start_date - MAX_AUCTION_START_TIME_RESERV
         elif auction_start_date - now > MIN_AUCTION_START_TIME_RESERV:
