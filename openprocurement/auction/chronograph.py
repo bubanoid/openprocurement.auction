@@ -40,6 +40,7 @@ class AuctionsChronograph(object):
         self.config = config
         self.timezone = timezone(config['main']['timezone'])
         self.mapper = components.qA(self, IAuctionsManager)
+        LOGGER.info('0. ERROR below!!! AuctionsChronograph')
         self.server_name = get_server_name()
         LOGGER.info('Init node: {}'.format(self.server_name))
         self.init_database()
@@ -71,7 +72,20 @@ class AuctionsChronograph(object):
 
         LOGGER.info('Starting node: {}'.format(self.server_name))
 
+        try:
+            x = self.config['main']["couch_url"]
+            LOGGER.info('x = {}'.format(x))
+        except:
+            LOGGER.error('x = ????')
+        try:
+            y = self.config['main']['auctions_db']
+            LOGGER.info('y = {}'.format(y))
+        except:
+            LOGGER.info('y = ????')
+
+
         for auction_item in iterview(self.config['main']["couch_url"], self.config['main']['auctions_db'], 'chronograph/start_date'):
+            LOGGER.info('@@@@@@@@@@@@')
             datestamp = (datetime.now(self.timezone) + timedelta(minutes=1)).isoformat()
             # ADD FILTER BY VALUE {start: '2016-09-10T14:36:40.378777+03:00', test: false}
             if datestamp < auction_item['value']['start']:

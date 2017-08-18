@@ -12,6 +12,8 @@ from gevent.subprocess import check_call, CalledProcessError
 
 from uuid import uuid4
 
+LOGGER2 = getLogger('Log For Tests')
+
 LOCK_RETRIES = 6
 SLEEP_BETWEEN_TRIES_LOCK = 10
 WORKER_TIME_RUN = 16 * 60
@@ -152,6 +154,10 @@ class AuctionScheduler(GeventScheduler):
         job = self.get_job(document_id)
         if job:
             # TODO: here is a bug: job.args are an empty tuple!
+            try:
+                job.args[2]['start']
+            except:
+                LOGGER2.error('PREDICTABLE error!!!')
             job_auction_start_date = job.args[2]['start']  # job.args[2] view_value
             if job_auction_start_date == auction_start_date:
                 return

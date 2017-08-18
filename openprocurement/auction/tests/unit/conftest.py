@@ -8,7 +8,7 @@ from openprocurement.auction.tests.utils import update_auctionPeriod, AUCTION_DA
 from openprocurement.auction.tests.unit.utils import TestClient
 from openprocurement.auction.tests.unit.utils import kill_child_processes
 from openprocurement.auction.worker.auction import Auction, SCHEDULER
-from gevent import spawn, sleep, killall, GreenletExit
+from gevent import spawn, sleep, killall, GreenletExit, kill
 from ..utils import PWD
 import json
 import logging
@@ -97,9 +97,13 @@ def job_is_not_active():
 
 @pytest.fixture(scope='function')
 def chronograph(request):
+    LOGGER.info('0.  spawn(chrono.run)')
     logging.config.dictConfig(test_chronograph_config)
+    LOGGER.info('0.1  spawn(chrono.run)')
     chrono = AuctionsChronograph(test_chronograph_config)
+    LOGGER.info('0.5.  spawn(chrono.run)')
     spawn(chrono.run)
+    LOGGER.info('1.  spawn(chrono.run)')
 
     def delete_chronograph():
         chrono.server.stop()
@@ -115,15 +119,33 @@ def chronograph(request):
         # But we can skip it as scheduler is turned off by the following block.
 
         try:
+            x = len([obj for obj in gc.get_objects() if isinstance(obj, greenlet)])
+            LOGGER.info('a1) len of gevent jobs {}'.format(x))
+            x = len([obj for obj in gc.get_objects() if isinstance(obj, greenlet) and obj.dead])
+            LOGGER.info('a2) len of dead gevent jobs {}'.format(x))
+
+            # kill()
             killall(
                 [obj for obj in gc.get_objects() if isinstance(obj, greenlet)])
+
+            # for obj in gc.get_objects():
+            #     if isinstance(obj, greenlet):
+            #         obj.kill()
+
         except GreenletExit:
             print("Correct exception 'GreenletExit' raised.")
         except Exception as e:
             print("Gevent couldn't close gracefully.")
             raise e
 
+        x = len([obj for obj in gc.get_objects() if isinstance(obj, greenlet)])
+        LOGGER.info('b1) len of gevent jobs {}'.format(x))
+        x = len([obj for obj in gc.get_objects() if isinstance(obj, greenlet) and obj.dead])
+        LOGGER.info('b2) len of dead gevent jobs {}'.format(x))
+
     request.addfinalizer(delete_chronograph)
+
+    LOGGER.info('2.  spawn(chrono.run)')
 
     return chrono
 
@@ -158,3 +180,4 @@ def log_for_test(request):
     LOGGER.debug('Current module: {0}'.format(request.module.__name__))
     LOGGER.debug('Current test class: {0}'.format(request.cls.__name__))
     LOGGER.debug('Current test function: {0}'.format(request.function.__name__))
+    return LOGGER

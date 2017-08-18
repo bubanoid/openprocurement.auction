@@ -14,31 +14,33 @@ from .conftest import job_is_not_added, job_is_not_active, job_is_added, \
 
 class TestChronograph(object):
     def test_view_job_not_add(self, db, chronograph, auction):
-        sleep(1)
+        sleep(0.5)
         assert job_is_not_added()
         assert job_is_not_active()
 
-    # def test_view_job_add(self, log_for_test, db, chronograph, auction):
-    #     auction.prepare_auction_document()
-    #     sleep(1)
-    #
-    #     assert job_is_added()
-    #     assert job_is_not_active()
-
-    @pytest.mark.parametrize(
-        'auction',
-        [({'time': MAX_AUCTION_START_TIME_RESERV,
-           'delta_t': datetime.timedelta(seconds=3)})], indirect=['auction'])
-    def test_listing(self, db, chronograph, auction):
+    def test_view_job_add(self, db, chronograph, auction):
         auction.prepare_auction_document()
         sleep(0.5)
 
         assert job_is_added()
         assert job_is_not_active()
 
-        sleep(65)
-        assert job_is_not_added()
-        assert job_is_active()
+    @pytest.mark.parametrize(
+        'auction',
+        [({'time': MAX_AUCTION_START_TIME_RESERV,
+           'delta_t': datetime.timedelta(seconds=3)})], indirect=['auction'])
+    def test_listing(self, log_for_test, db, chronograph, auction):
+        log_for_test.info('aaaaaa')
+        auction.prepare_auction_document()
+        log_for_test.info('bbbbbb')
+        sleep(0.5)
+
+        assert job_is_added()
+        # assert job_is_not_active()
+        #
+        # sleep(65)
+        # assert job_is_not_added()
+        # assert job_is_active()
 
 
     # def test_shutdown(self, chronograph):

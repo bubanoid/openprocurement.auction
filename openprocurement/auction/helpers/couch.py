@@ -21,6 +21,10 @@ def couchdb_dns_query_settings(server_url, database_name):
     raise Exception("No route to any couchdb server")
 
 
+import logging
+LOGGER = logging.getLogger('Log For Tests')
+
+
 def iterview(server_url, database_name, view_name, sleep_seconds=10, wrapper=None, **options):
     """Iterate the rows in a view, fetching rows in batches and yielding
     one row at a time.
@@ -50,6 +54,9 @@ def iterview(server_url, database_name, view_name, sleep_seconds=10, wrapper=Non
             options['start_key'] = 0
             database = couchdb_dns_query_settings(server_url, database_name)
             continue
+        except Exception as e:
+            LOGGER.error('!!!!!!!!!!!')
+            raise e
         if len(rows) != 0:
             for row in rows:
                 start_key = row['key']
