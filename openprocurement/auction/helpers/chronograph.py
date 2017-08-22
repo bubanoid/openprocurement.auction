@@ -151,6 +151,7 @@ class AuctionScheduler(GeventScheduler):
             return
         job = self.get_job(document_id)
         if job:
+            # TODO: here is a bug: job.args are an empty tuple!
             job_auction_start_date = job.args[2]['start']  # job.args[2] view_value
             if job_auction_start_date == auction_start_date:
                 return
