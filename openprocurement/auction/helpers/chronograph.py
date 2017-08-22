@@ -104,13 +104,13 @@ class AuctionScheduler(GeventScheduler):
         self.execution_stopped = True
         return response
 
-    def _auction_fucn(self, args):
+    def _auction_fucn(self, *args, **kwargs):
         try:
-            check_call(args)
+            check_call(*args, **kwargs)
         except CalledProcessError:
             self.logger.error("Exit with error {}".format(args[0]))
 
-    def run_auction_func(self, args, ttl=WORKER_TIME_RUN):
+    def run_auction_func(self, *args, **kwargs):
         if self._count_auctions >= self._limit_auctions:
             self.logger.info("Limited by count")
             return
@@ -123,14 +123,14 @@ class AuctionScheduler(GeventScheduler):
         sleep(random())
         if self.use_consul:
             i = LOCK_RETRIES
-            session = self.consul.session.create(behavior='delete', ttl=WORKER_TIME_RUN)
+            session = self.consul.session.create(behavior='delete', ttl=kwargs.get('ttl', WORKER_TIME_RUN))
             while i > 0:
                 if self.consul.kv.put("auction_{}".format(document_id), self.server_name, acquire=session):
                     self.logger.info("Run worker for document {}".format(document_id))
                     with self._limit_pool_lock:
                         self._count_auctions += 1
 
-                    self._auction_fucn(args)
+                    self._auction_fucn(*args, **kwargs)
 
                     self.logger.info("Finished {}".format(document_id))
                     self.consul.session.destroy(session)
@@ -143,9 +143,9 @@ class AuctionScheduler(GeventScheduler):
             self.logger.debug("Locked on other server")
             self.consul.session.destroy(session)
         else:
-            self._auction_fucn(args)
+            self._auction_fucn(*args, **kwargs)
 
-    def schedule_auction(self, document_id, view_value, args):
+    def schedule_auction(self, document_id, view_value, *args, **kwargs):
         auction_start_date = self.convert_datetime(view_value['start'])
         if self._executors['default']._instances.get(document_id):
             return
@@ -165,11 +165,20 @@ class AuctionScheduler(GeventScheduler):
             AW_date = now
         else:
             return
+
+        if "_" in document_id:
+            tender_id, lot_id = document_id.split("_")
+        else:
+            tender_id = document_id
+            lot_id = None
+
         self.logger.info('Scedule start of {} at {} ({})'.format(document_id,
                                                                  AW_date,
                                                                  view_value['start']))
 
-        self.add_job(self.run_auction_func, kwargs=dict(args=args),
+        self.add_job(self.run_auction_func,
+                     args=(tender_id, lot_id, view_value) + args,
+                     kwargs=kwargs,
                      misfire_grace_time=60,
                      next_run_time=AW_date,
                      id=document_id,
