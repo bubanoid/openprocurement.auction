@@ -72,15 +72,13 @@ class AuctionsDataBridge(object):
             # magic goes here
             feed = FeedItem(item)
             planning = self.mapper(feed)
-            if not planning:
-                continue
+
             for cmd, item_id, lot_id in planning:
                 if lot_id:
                     LOGGER.info('Lot {} of tender {} selected for {}'.format(lot_id, item_id, cmd))
                 else:
                     LOGGER.info('Tender {} selected for {}'.format(item_id, cmd))
                 planning(cmd, item_id, lot_id=lot_id)
-
 
     def run_re_planning(self):
         pass
