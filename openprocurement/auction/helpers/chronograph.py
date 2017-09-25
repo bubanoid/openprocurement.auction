@@ -102,7 +102,11 @@ class AuctionScheduler(GeventScheduler):
             for pid in self.processes:
                 self.logger.info("Killed {}".format(pid))
                 self.processes[pid].terminate()
-        response = super(AuctionScheduler, self).shutdown()
+        try:
+            response = super(AuctionScheduler, self).shutdown()
+        except SchedulerNotRunningError:
+            self.logger.debug('Scheduler is not running')
+
         self.execution_stopped = True
         return response
 
