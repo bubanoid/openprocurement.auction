@@ -47,8 +47,10 @@ class AuctionsChronograph(object):
     def __init__(self, config, *args, **kwargs):
         super(AuctionsChronograph, self).__init__(*args, **kwargs)
         self.config = config
+        LOGGER.info('0. Test info')
         self.timezone = timezone(config['main']['timezone'])
         self.mapper = components.qA(self, IAuctionsManager)
+        LOGGER.info('1. Test info')
         self.server_name = get_server_name()
         LOGGER.info('Init node: {}'.format(self.server_name))
         self.init_database()
@@ -85,11 +87,16 @@ class AuctionsChronograph(object):
                 spawn=100
             )
         else:
+            # TODO: uncomment the foolowing block!
+            # self.server = WSGIServer(
+            #     get_lisener(location),
+            #     self.web_application,
+            #     spawn=100
+            # )
             self.server = WSGIServer(
-                get_lisener(location),
+                ('', self.config['main'].get('web_app')),
                 self.web_application,
-                spawn=100
-            )
+                spawn=100)
         self.server.start()
 
     def run(self):
@@ -111,20 +118,32 @@ class AuctionsChronograph(object):
         for auction_item in iterview(self.config['main']["couch_url"],
                                      self.config['main']['auctions_db'],
                                      'chronograph/start_date'):
+            LOGGER.info('~~~~~  ADD JOB 0 ~~~~~')
             datestamp = (
                 datetime.now(self.timezone) + timedelta(minutes=1)
             ).isoformat()
             # ADD FILTER BY VALUE
             # {start: '2016-09-10T14:36:40.378777+03:00', test: false}
             if datestamp < auction_item['value']['start']:
+                LOGGER.info('.......Auction will be scheduled.........')
                 worker_cmd_provider = \
                     self.mapper(FeedItem(auction_item['value']))
+                LOGGER.info('~~~~~  ADD JOB 1 ~~~~~')
                 if not worker_cmd_provider:
                     continue
+                LOGGER.info('1. Args to run worker: {}, {}'.format(auction_item['id'], auction_item['value']))
+                LOGGER.info('2. Args to run worker: {}'.format(worker_cmd_provider(auction_item['id'])))
                 self.scheduler.schedule_auction(
                     auction_item['id'], auction_item['value'],
                     args=worker_cmd_provider(auction_item['id'])
                 )
+
+                import json
+                from openprocurement.auction.tests.unit.utils import TestClient
+                test_client = TestClient('http://0.0.0.0:9005')
+                LOGGER.info('???Added????')
+                resp = test_client.get('jobs')
+                LOGGER.info(len(json.loads(resp.content)))
 
             if self.scheduler.exit:
                 break

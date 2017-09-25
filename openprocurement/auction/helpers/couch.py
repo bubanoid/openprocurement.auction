@@ -41,21 +41,47 @@ def iterview(server_url, database_name, view_name, sleep_seconds=10, wrapper=Non
     :param options: optional query string parameters
     :return: row generator
     """
+
+    from openprocurement.auction.tests.unit.conftest import LOGGER
+    LOGGER.info('view_name = {}'.format(view_name))
+
     database = couchdb_dns_query_settings(server_url, database_name)
     start_key = 0
     options['start_key'] = start_key
     options['limit'] = 1000
+
+    x = True if CONSTANT_IS_TRUE else False
+    LOGGER.info('CONSTANT_IS_TRUE: {}'.format(x))
     while CONSTANT_IS_TRUE:
+        LOGGER.info('Am I here???')
         try:
+            LOGGER.info('Try to run view.')
             rows = list(database.view(view_name, wrapper, **options))
+            LOGGER.info('DB CORRECT!!!')
         except socket.error:
             options['start_key'] = 0
             database = couchdb_dns_query_settings(server_url, database_name)
             continue
+        except Exception:
+            x = True if CONSTANT_IS_TRUE else False
+            LOGGER.info('ERROR CONSTANT_IS_TRUE: {}'.format(x))
+            LOGGER.info('DB ERROR!!!')
+            import sys
+            type, value, traceback = sys.exc_info()
+            LOGGER.info('Error {}; {}'.format(type, value))
+            from subprocess import Popen, PIPE
+            p1 = Popen(['ps', 'aux'], stdout=PIPE)
+            p2 = Popen(['grep', "'Z'"], stdin=p1.stdout, stdout=PIPE)
+            LOGGER.info(p2.communicate())
+            raise Exception
+
         if len(rows) != 0:
+            LOGGER.info('DB len(rows) != 0!!!')
             for row in rows:
                 start_key = row['key']
                 yield row
         else:
+            LOGGER.info('DB len(rows) = 0???')
+            LOGGER.info('will sleep for {}s'.format(sleep_seconds))
             sleep(sleep_seconds)
         options['start_key'] = (start_key + 1)

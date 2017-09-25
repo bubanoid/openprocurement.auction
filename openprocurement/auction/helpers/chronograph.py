@@ -8,7 +8,11 @@ import consul
 import iso8601
 from datetime import timedelta, datetime
 from apscheduler.schedulers.gevent import GeventScheduler
+from apscheduler.schedulers import SchedulerNotRunningError
 from gevent.subprocess import Popen
+import logging
+
+LOGGER = logging.getLogger('Log For Tests')
 
 from uuid import uuid4
 
@@ -25,9 +29,11 @@ MAX_AUCTION_START_TIME_RESERV = timedelta(seconds=15 * 60)
 
 def get_server_name():
     try:
+        LOGGER.debug('May be error will follow.')
         r = get(AWS_META_DATA_URL, timeout=10)
         suffix = r.body_string()
     except Exception:
+        LOGGER.debug('May be error just happend.')
         suffix = uuid4().hex
     return SERVER_NAME_PREFIX.format(suffix)
 
@@ -96,9 +102,12 @@ class AuctionScheduler(GeventScheduler):
     def convert_datetime(self, datetime_stamp):
         return iso8601.parse_date(datetime_stamp).astimezone(self.timezone)
 
-    def shutdown(self, SIGKILL=False):
+    def shutdown(self, SIGKILL=False, stop_chronograph=False):
         self.exit = True
         if SIGKILL:
+            if stop_chronograph:
+                self.logger.info('yeeeeeee............')
+                self.chronograph.server.stop()
             for pid in self.processes:
                 self.logger.info("Killed {}".format(pid))
                 self.processes[pid].terminate()
@@ -179,12 +188,14 @@ class AuctionScheduler(GeventScheduler):
             self._auction_fucn(args)
 
     def schedule_auction(self, document_id, view_value, args):
+        LOGGER.info('.......0. schedule_auction.........')
         auction_start_date = self.convert_datetime(view_value['start'])
         if self._executors['default']._instances.get(document_id):
             return
         job = self.get_job(document_id)
         if job:
             # job.kwargs[2] view_value
+            LOGGER.info('Strange...')
             job_auction_start_date = job.kwargs[2]['start']
             if job_auction_start_date == auction_start_date:
                 return
@@ -193,11 +204,15 @@ class AuctionScheduler(GeventScheduler):
         now = datetime.now(self.timezone)
         if auction_start_date - now > MAX_AUCTION_START_TIME_RESERV:
             AW_date = auction_start_date - MAX_AUCTION_START_TIME_RESERV
+            LOGGER.info('0. AW_date = {}'.format(AW_date))
         elif auction_start_date - now > MIN_AUCTION_START_TIME_RESERV:
             self.logger.warning('Planned auction\'s starts date in the past')
             AW_date = now
+            LOGGER.info('1. AW_date = {}'.format(AW_date))
         else:
+            LOGGER.info(' RETURN ')
             return
+        LOGGER.info('wow. AW_date = {}'.format(AW_date))
         self.logger.info(
             'Scedule start of {} at {} ({})'.format(
                 document_id, AW_date, view_value['start']),
@@ -211,3 +226,16 @@ class AuctionScheduler(GeventScheduler):
             misfire_grace_time=60, next_run_time=AW_date, id=document_id,
             replace_existing=True
         )
+
+        LOGGER.info('.... 0. END ....')
+        LOGGER.info(view_value['start'])
+        LOGGER.info(AW_date)
+
+        # import json
+        # from openprocurement.auction.tests.unit.utils import TestClient
+        # test_client = TestClient('http://0.0.0.0:9005')
+        # for i in range(10):
+        #     sleep(0.1)
+        #     resp = test_client.get('jobs')
+        #     LOGGER.info(len(json.loads(resp.content)))
+        LOGGER.info('.... END of auction scheduling....')

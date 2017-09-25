@@ -1,25 +1,27 @@
+# -*- coding: utf-8 -*-
 import json
 import logging
 import couchdb
 import datetime
-import gc
 import openprocurement.auction.databridge as databridge_module
 import pytest
-from gevent import spawn, killall, GreenletExit
-from greenlet import greenlet
+from gevent import spawn
 from openprocurement.auction import core as core_module
 from openprocurement.auction.chronograph import AuctionsChronograph
 from openprocurement.auction.databridge import AuctionsDataBridge
 from openprocurement.auction.helpers.chronograph import \
-    MAX_AUCTION_START_TIME_RESERV
+    MIN_AUCTION_START_TIME_RESERV
 from openprocurement.auction.tests.unit.utils import get_tenders_dummy
-from openprocurement.auction.tests.unit.utils import kill_child_processes
 from openprocurement.auction.worker.auction import Auction
 from openprocurement.auction.tests.utils import update_auctionPeriod, \
     AUCTION_DATA
 from openprocurement.auction.tests.unit.utils import worker_defaults, \
     test_chronograph_config, worker_defaults_file_path, test_bridge_config
 import yaml
+import openprocurement.auction.helpers.couch as couch_module
+import openprocurement.auction.chronograph as chrono_module
+from openprocurement.auction.tests.unit.utils import DummyTrue, \
+    iterview_wrappper
 
 
 LOGGER = logging.getLogger('Log For Tests')
@@ -35,10 +37,6 @@ test_log_config = {
 
 logging.config.dictConfig(test_log_config)
 
-# def pytest_generate_tests(metafunc):
-#     for funcargs in getattr(metafunc.function, 'funcarglist', ()):
-#         metafunc.addcall(funcargs=funcargs)
-
 
 @pytest.fixture(scope='function')
 def db(request):
@@ -47,12 +45,16 @@ def db(request):
 
     documents = getattr(request, 'param', None)
 
+    LOGGER.info('DB 1. test')
+
     def delete():
         del server[name]
 
+    LOGGER.info('DB 2. test')
     if name in server:
         delete()
 
+    LOGGER.info('DB 3. test')
     data_base = server.create(name)
 
     if documents:
@@ -65,42 +67,55 @@ def db(request):
 
 
 @pytest.fixture(scope='function')
-def chronograph(request):
+def chronograph(request, mocker):
     logging.config.dictConfig(test_chronograph_config)
+
+    LOGGER.info('chronon will be instantiated')
+
+    # We use 'dummy_true' variable instead of real True and mock iterview
+    # with iterview_wrappper function to tear down the test gracefully.
+    # Without these steps iterview from previous test running continue working
+    # while next test have already been launched.
+    dummy_true = DummyTrue()
+    couch_module.CONSTANT_IS_TRUE = dummy_true
+    mocker.patch.object(chrono_module, 'iterview',
+                        side_effect=iterview_wrappper, autospec=True)
+
     chrono = AuctionsChronograph(test_chronograph_config)
-    spawn(chrono.run)
+
+    LOGGER.info('chronon will be spawned')
+    ch = spawn(chrono.run)
+    LOGGER.info('chronon is spawned')
 
     def delete_chronograph():
-        chrono.server.stop()
+        LOGGER.info('Chronograph starts stopping')
 
-        kill_child_processes()
-
-        jobs = chrono.scheduler.get_jobs()
-        for job in jobs:
-             chrono.scheduler.remove_job(job.id)
-
-        # chrono.scheduler.shutdown()
-        # TODO: find out why the previous command causes the problems.
-        # But we can skip it as scheduler is turned off by the following block.
-
-        try:
-            killall(
-                [obj for obj in gc.get_objects() if isinstance(obj, greenlet)])
-        except GreenletExit:
-            print("Correct exception 'GreenletExit' raised.")
-        except Exception as e:
-            print("Gevent couldn't close gracefully.")
-            raise e
+        chrono.scheduler.execution_stopped = True
+        x = True if couch_module.CONSTANT_IS_TRUE else False
+        LOGGER.error('1. ERROR check!!! {}'.format(x))
+        dummy_true.ind = False
+        x = True if couch_module.CONSTANT_IS_TRUE else False
+        LOGGER.error('2. ERROR check!!! {}'.format(x))
+        ch.join(0.15)
+        LOGGER.debug('After error check')
+        # The order of two following commands is important
+        # chrono.server.stop()
+        LOGGER.info('Chronograph server stopped')
+        chrono.scheduler.shutdown(True, True)
+        LOGGER.info('Chronograph ends stopping')
 
     request.addfinalizer(delete_chronograph)
 
-    return chrono
+    return ch
 
 
 @pytest.yield_fixture(scope="function")
 def auction(request):
-    defaults = {'time': MAX_AUCTION_START_TIME_RESERV,
+    defaults = {'time': MIN_AUCTION_START_TIME_RESERV,
                 'delta_t': datetime.timedelta(seconds=10)}
+
+    if getattr(request, 'param', None):
+        print('yes!!!')
 
     params = getattr(request, 'param', defaults)
     for key in defaults.keys():
@@ -119,7 +134,9 @@ def auction(request):
             lot_id=False)
         yield auction_inst
 
-    auction_inst._end_auction_event.set()
+    LOGGER.info('START auction_inst._end_auction_event.set()')
+    # auction_inst._end_auction_event.set()
+    LOGGER.info('END auction_inst._end_auction_event.set()')
 
 
 @pytest.fixture(scope='function')
@@ -146,9 +163,11 @@ def bridge(request, mocker):
             'mock_do_until_success': mock_do_until_success}
 
 
-@pytest.fixture(scope="function")
+@pytest.yield_fixture(scope="function")
 def log_for_test(request):
     LOGGER.debug('-------- Test Start ---------')
     LOGGER.debug('Current module: {0}'.format(request.module.__name__))
     LOGGER.debug('Current test class: {0}'.format(request.cls.__name__))
     LOGGER.debug('Current test function: {0}'.format(request.function.__name__))
+    yield LOGGER
+    LOGGER.debug('-------- Test End ---------')
