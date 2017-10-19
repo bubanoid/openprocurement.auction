@@ -318,7 +318,7 @@ def create_mapping(config, auction_id, auction_url):
 
 @retry(stop_max_attempt_number=3)
 def get_mapping(config, auction_id, master=False):
-    return get_database(config).get(auction_id)
+    return get_database(config, master=master).get(auction_id)
 
 
 @retry(stop_max_attempt_number=3)
