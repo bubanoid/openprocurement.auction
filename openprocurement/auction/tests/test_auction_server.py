@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # TODO: check StopIteration was raised
-# TODO: test make_auctions_app.
 
 
 import pytest
