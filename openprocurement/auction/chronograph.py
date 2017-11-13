@@ -112,7 +112,7 @@ class AuctionsChronograph(object):
                                      self.config['main']['auctions_db'],
                                      'chronograph/start_date'):
             datestamp = (
-                datetime.now(self.timezone) + timedelta(minutes=1)
+                datetime.now(self.timezone) + timedelta(minutes=0)
             ).isoformat()
             # ADD FILTER BY VALUE
             # {start: '2016-09-10T14:36:40.378777+03:00', test: false}

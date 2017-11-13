@@ -193,13 +193,14 @@ class AuctionScheduler(GeventScheduler):
             self.logger.warning("Changed start date: {}".format(document_id))
 
         now = datetime.now(self.timezone)
-        if auction_start_date - now > MAX_AUCTION_START_TIME_RESERV:
-            AW_date = auction_start_date - MAX_AUCTION_START_TIME_RESERV
-        elif auction_start_date - now > MIN_AUCTION_START_TIME_RESERV:
-            self.logger.warning('Planned auction\'s starts date in the past')
-            AW_date = now
-        else:
-            return
+        # if auction_start_date - now > MAX_AUCTION_START_TIME_RESERV:
+        #     AW_date = auction_start_date - MAX_AUCTION_START_TIME_RESERV
+        # elif auction_start_date - now > MIN_AUCTION_START_TIME_RESERV:
+        #     self.logger.warning('Planned auction\'s starts date in the past')
+        #     AW_date = now
+        # else:
+        #     return
+        AW_date = now
         self.logger.info(
             'Scedule start of {} at {} ({})'.format(
                 document_id, AW_date, view_value['start']),

@@ -19,7 +19,7 @@ def read_file_from_json(path):
 
 PWD = os.path.dirname(os.path.realpath(__file__))
 LOGGER = logging.getLogger('Log For Tests')
-PAUSE_SECONDS = timedelta(seconds=120)
+PAUSE_SECONDS = timedelta(seconds=10)
 AUCTION_DATA = {
     'simple': {'path': os.path.join(PWD, 'data', 'tender_simple.json'),
                'data': read_file_from_json(os.path.join(
