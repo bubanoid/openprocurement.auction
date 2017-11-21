@@ -39,7 +39,7 @@ extras_require = {
         'webtest',
         'mock',
         'pytest-cov',
-        'sseclient'
+        'sseclient-py'
     ]
 }
 entry_points = {
