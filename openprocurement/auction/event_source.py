@@ -1,5 +1,4 @@
 import logging
-
 from sse import Sse as PySse
 from flask import (
     json, current_app, Blueprint,
@@ -8,10 +7,11 @@ from flask import jsonify, abort
 from gevent.queue import Queue
 from gevent import spawn, sleep
 from datetime import datetime
+from openprocurement.auction.utils import prepare_extra_journal_fields, \
+    get_bidder_id
 
-from openprocurement.auction.utils import prepare_extra_journal_fields, get_bidder_id
 
-
+TRUE = True
 LOGGER = logging.getLogger(__name__)
 CHUNK = ' ' * 2048 + '\n'
 
@@ -40,7 +40,7 @@ class SseStream(object):
         for data in self.sse:
             yield data.encode('u8')
 
-        while True:
+        while TRUE:
             message = self.queue.get()
             if message["event"] == "StopSSE":
                 return
@@ -104,6 +104,7 @@ def event_source():
                     }
 
                 if client_hash not in current_app.auction_bidders[bidder]:
+                # TODO: if client_hash not in current_app.auction_bidders[bidder]['clients']:
                     real_ip = request.environ.get('HTTP_X_REAL_IP', '')
                     if real_ip.startswith('172.'):
                         real_ip = ''
