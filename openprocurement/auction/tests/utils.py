@@ -122,8 +122,8 @@ class TestClient(Sess):
 
 
 class DummyTrue(object):
-    def __init__(self):
-        self.ind = True
+    def __init__(self, ind=True):
+        self.ind = ind
 
     def __nonzero__(self):
         return self.ind
