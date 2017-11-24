@@ -29,7 +29,7 @@ from couchdb import Server
 from memoize import Memoizer
 from mock import sentinel
 from sse import Sse as PySse
-from flask import Response
+from flask import Response, Flask
 
 
 DEFAULT = sentinel.DEFAULT
@@ -48,6 +48,18 @@ test_log_config = {
 
 logging.config.dictConfig(test_log_config)
 
+
+@pytest.fixture(scope='class')
+def app():
+    app = Flask(__name__)
+    app.config['SECRET_KEY'] = 'TEST_SECRET_KEY'
+    app.config['OAUTH_CLIENT_ID'] = 'TEST_OAUTH_CLIENT_ID'
+    app.config['OAUTH_CLIENT_SECRET'] = 'TEST_OAUTH_CLIENT_SECRET'
+    app.config['OAUTH_BASE_URL'] = 'TEST_OAUTH_BASE_URL'
+    app.config['OAUTH_ACCESS_TOKEN_URL'] = 'TEST_OAUTH_ACCESS_TOKEN_URL'
+    app.config['OAUTH_AUTHORIZE_URL'] = 'TEST_OAUTH_AUTHORIZE_URL'
+
+    return app
 
 @pytest.fixture(scope='function')
 def db(request):
