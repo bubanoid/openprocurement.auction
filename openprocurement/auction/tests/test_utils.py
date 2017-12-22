@@ -116,8 +116,8 @@ class TestGetTenderData(object):
         session.get.assert_called_once_with(self.tender_url, auth=None,
                                             headers=self.headers, timeout=300)
 
-    def test_get_tender_data_raise_request_exception(self, mocker):
-        mocker.patch.object(openprocurement.auction.utils, 'sleep')
+    @patch('openprocurement.auction.utils.sleep', return_value=None)
+    def test_get_tender_data_raise_request_exception(self, sleep):
         with self.app.test_client() as c:
             with c.session_transaction() as sess:
                 session = MagicMock(spec_set=sess)
@@ -130,8 +130,8 @@ class TestGetTenderData(object):
         assert resp is None
         assert session.get.call_count == 10
 
-    def test_get_tender_data_raise_key_error(self, mocker):
-        mocker.patch.object(openprocurement.auction.utils, 'sleep')
+    @patch('openprocurement.auction.utils.sleep', return_value=None)
+    def test_get_tender_data_raise_key_error(self, sleep):
         with self.app.test_client() as c:
             with c.session_transaction() as sess:
                 session = MagicMock(spec_set=sess)
