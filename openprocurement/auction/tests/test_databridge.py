@@ -59,7 +59,11 @@ class TestDatabridgeConfig(object):
                 AuctionsDataBridge(test_bridge_error_config)
             assert key in exc_info.value
 
-
+# TODO: This test does work with other tests,  when we rename this module
+# TODO: to test_aa.py (so this module is executed first )
+# TODO: I suppose that other modules with tests change objects that are used by
+# TODO: this test.  When modules are imported its objects already live on heap.
+# TODO: This test does work when module is executed alone.
 # class TestDataBridgeRunLogInformation(object):
 #     log_capture_string = StringIO()
 #     ch = logging.StreamHandler(log_capture_string)
